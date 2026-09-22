@@ -1,0 +1,44 @@
+repos:
+  - repo: local
+    hooks:
+      - id: ruff-check
+        name: Ruff check
+        entry: poetry run ruff check src --fix
+        language: system
+        pass_filenames: false
+        types: [python]
+
+      - id: ruff-format
+        name: Ruff format
+        entry: poetry run ruff format src
+        language: system
+        pass_filenames: false
+        types: [python]
+
+      - id: mypy
+        name: Mypy type check
+        entry: poetry run mypy src
+        language: system
+        pass_filenames: false
+        types: [python]
+
+      - id: bandit
+        name: Bandit security check
+        entry: poetry run bandit -r src -lll -x .venv,venv,build,dist,migrations
+        language: system
+        pass_filenames: false
+        types: [python]
+
+      - id: radon-cc
+        name: Radon complexity check
+        entry: poetry run radon cc -s src
+        language: system
+        pass_filenames: false
+        types: [python]
+
+      - id: radon-mi
+        name: Radon maintainability check
+        entry: poetry run radon mi src
+        language: system
+        pass_filenames: false
+        types: [python]
