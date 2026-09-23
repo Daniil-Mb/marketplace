@@ -1,5 +1,3 @@
-from uuid import UUID
-
 from pwdlib import PasswordHash
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -66,6 +64,3 @@ class AuthService:
             raise IncorrectPasswordException
 
         return create_access_token(user.id)
-
-    async def get_user(self, user_id: UUID) -> User | None:
-        return await self.user_repository.get_by_id(user_id)

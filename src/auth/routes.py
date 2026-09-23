@@ -1,12 +1,13 @@
-from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.auth.jwt.utils import decode_access_token
+from src.auth.dependencies import get_current_user
 from src.auth.schemas.login_user import LoginUserSchema
 from src.auth.schemas.register_user import RegisterUserSchema
 from src.auth.schemas.user_out import UserOutSchema
 from src.auth.services.auth_service import AuthService
 from src.core.database.helpers.db_helper import get_session
+from src.core.database.models.user_model import User
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
 
@@ -80,33 +81,8 @@ async def login(
 
 @router.get("/me", response_model=UserOutSchema)
 async def me(
-    request: Request,
-    service: AuthService = Depends(get_auth_service),
+    user: User = Depends(get_current_user),
 ) -> UserOutSchema:
-    token = request.cookies.get(ACCESS_TOKEN_COOKIE)
-
-    if not token:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Not authenticated",
-        )
-
-    try:
-        user_id = decode_access_token(token)
-    except Exception as exc:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid token",
-        ) from exc
-
-    user = await service.get_user(user_id)
-
-    if user is None:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="User not found",
-        )
-
     return UserOutSchema.model_validate(user)
 
 
