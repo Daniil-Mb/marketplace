@@ -4,9 +4,23 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    app_name: str = "Marketplace API"
-    app_version: str = "0.1.0"
+    app_name: str = "marketplace"
     debug: bool = False
+
+    postgres_host: str = "postgres"
+    postgres_port: int = 5432
+    postgres_db: str = "marketplace"
+    postgres_user: str = "marketplace"
+    postgres_password: str = "password"
+
+    @property
+    def database_url(self) -> str:
+        return (
+            f"postgresql+asyncpg://"
+            f"{self.postgres_user}:{self.postgres_password}"
+            f"@{self.postgres_host}:{self.postgres_port}"
+            f"/{self.postgres_db}"
+        )
 
     model_config = SettingsConfigDict(
         env_file=".env",
