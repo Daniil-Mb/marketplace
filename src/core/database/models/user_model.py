@@ -1,11 +1,15 @@
 from datetime import datetime
+from typing import TYPE_CHECKING
 from uuid import UUID, uuid4
 
 from sqlalchemy import DateTime, String, func
 from sqlalchemy.dialects.postgresql import UUID as PGUUID
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.core.database.helpers.base_model import Base
+
+if TYPE_CHECKING:
+    from src.core.database.models.post_model import Post
 
 
 class User(Base):
@@ -33,4 +37,8 @@ class User(Base):
         DateTime(timezone=True),
         server_default=func.now(),
         nullable=False,
+    )
+    posts: Mapped[list["Post"]] = relationship(
+        back_populates="user",
+        cascade="all, delete-orphan",
     )

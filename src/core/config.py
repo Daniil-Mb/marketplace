@@ -13,6 +13,10 @@ class Settings(BaseSettings):
     postgres_user: str = "marketplace"
     postgres_password: str = "password"
 
+    jwt_secret_key: str = "change-me"
+    jwt_algorithm: str = "HS256"
+    jwt_expire_minutes: int = 60
+
     @property
     def database_url(self) -> str:
         return (

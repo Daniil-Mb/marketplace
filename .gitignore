@@ -209,7 +209,7 @@ __marimo__/
 # Streamlit
 .streamlit/secrets.toml
 /.env.testing
-
+cookies.txt
 logs/
 /staticfiles/
 /media/
