@@ -1,11 +1,13 @@
 from datetime import datetime
+from typing import TYPE_CHECKING
 
 from sqlalchemy import DateTime, String, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.core.database.helpers.base_model import Base
 
-from .post_model import Post
+if TYPE_CHECKING:
+    from .post_model import Post
 
 
 class Category(Base):
