@@ -1,0 +1,2 @@
+class UserHasNoAccessException(Exception):
+    pass

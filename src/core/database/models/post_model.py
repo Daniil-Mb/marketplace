@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import TYPE_CHECKING
 from uuid import UUID, uuid4
 
-from sqlalchemy import DateTime, ForeignKey, String, Text, func
+from sqlalchemy import Computed, DateTime, ForeignKey, String, Text, func
 from sqlalchemy.dialects.postgresql import TSVECTOR
 from sqlalchemy.dialects.postgresql import UUID as PGUUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -53,7 +53,10 @@ class Post(Base):
 
     search_vector: Mapped[str | None] = mapped_column(
         TSVECTOR,
-        nullable=True,
+        Computed(
+            "to_tsvector('russian'::regconfig, "
+            "(COALESCE(title, '')::text || ' ') || COALESCE(content, ''::text)"
+        ),
     )
 
     created_at: Mapped[datetime] = mapped_column(
