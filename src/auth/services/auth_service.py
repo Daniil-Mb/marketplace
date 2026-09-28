@@ -9,6 +9,7 @@ from src.auth.exceptions.multiple_validation_exception import (
 )
 from src.auth.jwt.utils import create_access_token
 from src.auth.repositories.user_repository import UserRepository
+from src.auth.tasks import send_welcome_email
 from src.core.database.models.user_model import User
 
 password_hash = PasswordHash.recommended()
@@ -47,6 +48,8 @@ class AuthService:
         await self.session.commit()
 
         await self.session.refresh(user)
+
+        send_welcome_email.delay(user.email)
 
         return user
 

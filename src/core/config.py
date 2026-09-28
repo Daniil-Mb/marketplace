@@ -24,6 +24,15 @@ class Settings(BaseSettings):
     s3_region: str = "us-east-1"
     s3_public_url: str = "http://localhost:9000"
 
+    rabbitmq_host: str = "rabbitmq"
+    rabbitmq_port: int = 5672
+    rabbitmq_user: str = "marketplace"
+    rabbitmq_password: str = "password"
+
+    mail_host: str = "mailhog"
+    mail_port: int = 1025
+    mail_from: str = "noreply@marketplace.local"
+
     @property
     def database_url(self) -> str:
         return (
@@ -31,6 +40,16 @@ class Settings(BaseSettings):
             f"{self.postgres_user}:{self.postgres_password}"
             f"@{self.postgres_host}:{self.postgres_port}"
             f"/{self.postgres_db}"
+        )
+
+    @property
+    def rabbitmq_url(self) -> str:
+        return (
+            f"amqp://"
+            f"{self.rabbitmq_user}:"
+            f"{self.rabbitmq_password}@"
+            f"{self.rabbitmq_host}:"
+            f"{self.rabbitmq_port}//"
         )
 
     model_config = SettingsConfigDict(

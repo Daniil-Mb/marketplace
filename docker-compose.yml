@@ -1,55 +1,124 @@
 services:
   postgres:
     image: pgvector/pgvector:pg17
-
     container_name: marketplace_postgres
-
     environment:
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-
     ports:
       - "${POSTGRES_PORT}:5432"
-
     volumes:
       - postgres_data:/var/lib/postgresql/data
-
     healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"
-        ]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 5s
       timeout: 5s
       retries: 10
-
     restart: unless-stopped
 
   rustfs:
     image: rustfs/rustfs:latest
-
     container_name: marketplace_rustfs
-
     command: server /data --console-address ":9001"
-
     environment:
       RUSTFS_ACCESS_KEY: rustfsadmin
       RUSTFS_SECRET_KEY: rustfsadmin
       RUSTFS_ADDRESS: 0.0.0.0:9000
       RUSTFS_CONSOLE_ADDRESS: 0.0.0.0:9001
       RUSTFS_CONSOLE_ENABLE: "true"
-
     ports:
       - "9000:9000"
       - "9001:9001"
-
     volumes:
       - rustfs_data:/data
+    restart: unless-stopped
 
+  rabbitmq:
+    image: rabbitmq:4-management-alpine
+    container_name: marketplace_rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD}
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  mailhog:
+    image: mailhog/mailhog
+    container_name: marketplace_mailhog
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+    restart: unless-stopped
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: marketplace_app
+    command:
+      - poetry
+      - run
+      - uvicorn
+      - src.main:app
+      - --host
+      - 0.0.0.0
+      - --port
+      - "8000"
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    environment:
+      POSTGRES_HOST: postgres
+      RABBITMQ_HOST: rabbitmq
+      MAIL_HOST: mailhog
+      S3_ENDPOINT_URL: http://rustfs:9000
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    restart: unless-stopped
+
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: marketplace_worker
+    command:
+      - poetry
+      - run
+      - celery
+      - -A
+      - src.core.celery_app:celery_app
+      - worker
+      - --loglevel=INFO
+      - --without-gossip
+      - --without-mingle
+      - --without-heartbeat
+    env_file:
+      - .env
+    environment:
+      POSTGRES_HOST: postgres
+      RABBITMQ_HOST: rabbitmq
+      MAIL_HOST: mailhog
+      S3_ENDPOINT_URL: http://rustfs:9000
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
     restart: unless-stopped
 
 volumes:
   postgres_data:
   rustfs_data:
+  rabbitmq_data:
