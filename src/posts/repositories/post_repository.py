@@ -4,9 +4,12 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.database.models.post_model import Post
+from src.posts.repositories.mixins.post_filter_mixin import (
+    PostFilterMixin,
+)
 
 
-class PostRepository:
+class PostRepository(PostFilterMixin):
     def __init__(self, session: AsyncSession) -> None:
         self.session = session
 
@@ -20,21 +23,56 @@ class PostRepository:
 
         return result.scalar_one_or_none()
 
-    async def get_total_count(self) -> int:
-        result = await self.session.execute(
-            select(func.count(Post.id)),
+    async def get_total_count(
+        self,
+        *,
+        search: str | None = None,
+        category_id: int | None = None,
+    ) -> int:
+        query = select(func.count(Post.id))
+
+        query = self.apply_category_filter(
+            query,
+            category_id,
         )
+
+        query = self.apply_search_filter(
+            query,
+            search,
+        )
+
+        result = await self.session.execute(query)
 
         return result.scalar_one() or 0
 
     async def get_list(
         self,
+        *,
         offset: int,
         limit: int,
+        search: str | None = None,
+        category_id: int | None = None,
     ) -> list[Post]:
-        result = await self.session.execute(
-            select(Post).order_by(Post.created_at.desc()).offset(offset).limit(limit),
+        query = select(Post)
+
+        query = self.apply_category_filter(
+            query,
+            category_id,
         )
+
+        query = self.apply_search_filter(
+            query,
+            search,
+        )
+
+        query = self.apply_search_order(
+            query,
+            search,
+        )
+
+        query = query.offset(offset).limit(limit)
+
+        result = await self.session.execute(query)
 
         return list(result.scalars().all())
 

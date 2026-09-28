@@ -68,14 +68,21 @@ class PostService:
         *,
         page_number: int,
         page_size: int,
+        search: str | None = None,
+        category_id: int | None = None,
     ) -> dict[str, object]:
         offset = (page_number - 1) * page_size
 
-        total = await self.post_repository.get_total_count()
+        total = await self.post_repository.get_total_count(
+            search=search,
+            category_id=category_id,
+        )
 
         items = await self.post_repository.get_list(
             offset=offset,
             limit=page_size,
+            search=search,
+            category_id=category_id,
         )
 
         pages = ceil(total / page_size) if total else 0

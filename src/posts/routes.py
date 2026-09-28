@@ -120,11 +120,22 @@ async def get_posts(
         ge=1,
         le=50,
     ),
+    search: str | None = Query(
+        default=None,
+        min_length=1,
+        max_length=255,
+    ),
+    category_id: int | None = Query(
+        default=None,
+        gt=0,
+    ),
     service: PostService = Depends(get_post_service),
 ) -> PostPaginateSchema:
     result = await service.get_list(
         page_number=page_number,
         page_size=page_size,
+        search=search,
+        category_id=category_id,
     )
 
     return PostPaginateSchema.model_validate(result)
