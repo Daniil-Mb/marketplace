@@ -1,11 +1,13 @@
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.auth.dependencies import get_current_user
 from src.core.database.helpers.db_helper import get_session
 from src.core.database.models.user_model import User
+from src.files.exceptions import ImageTooLargeException, InvalidImageTypeException
+from src.files.services.file_service import FileService
 from src.posts.exceptions.category_already_exists_exception import (
     CategoryAlreadyExistsException,
 )
@@ -20,10 +22,8 @@ from src.posts.exceptions.user_has_no_access_exception import (
 )
 from src.posts.schemas.category_schema import CategorySchema
 from src.posts.schemas.create_category_schema import CreateCategorySchema
-from src.posts.schemas.create_post_schema import CreatePostSchema
 from src.posts.schemas.post_paginate_schema import PostPaginateSchema
 from src.posts.schemas.posts_schema import PostSchema
-from src.posts.schemas.update_post_schema import UpdatePostSchema
 from src.posts.services.category_service import CategoryService
 from src.posts.services.post_service import PostService
 
@@ -41,7 +41,7 @@ def get_category_service(
 def get_post_service(
     session: AsyncSession = Depends(get_session),
 ) -> PostService:
-    return PostService(session)
+    return PostService(session, FileService())
 
 
 @router.post(
@@ -85,22 +85,35 @@ async def get_categories(
     status_code=status.HTTP_201_CREATED,
 )
 async def create_post(
-    data: CreatePostSchema,
+    title: str = Form(...),
+    content: str = Form(...),
+    category_id: int = Form(...),
+    image: UploadFile | None = File(None),
     service: PostService = Depends(get_post_service),
     user: User = Depends(get_current_user),
 ) -> PostSchema:
     try:
         post = await service.create(
-            title=data.title,
-            content=data.content,
-            category_id=data.category_id,
+            title=title,
+            content=content,
+            category_id=category_id,
             user_id=user.id,
-            image_url=data.image_url,
+            image=image,
         )
     except CategoryDoesNotExistException as exc:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Category not found",
+        ) from exc
+    except InvalidImageTypeException as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Unsupported image type. Allowed: jpeg, png, webp",
+        ) from exc
+    except ImageTooLargeException as exc:
+        raise HTTPException(
+            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            detail="Image is too large. Max size is 5 MB",
         ) from exc
 
     return PostSchema.model_validate(post)
@@ -111,24 +124,10 @@ async def create_post(
     response_model=PostPaginateSchema,
 )
 async def get_posts(
-    page_number: int = Query(
-        default=1,
-        ge=1,
-    ),
-    page_size: int = Query(
-        default=10,
-        ge=1,
-        le=50,
-    ),
-    search: str | None = Query(
-        default=None,
-        min_length=1,
-        max_length=255,
-    ),
-    category_id: int | None = Query(
-        default=None,
-        gt=0,
-    ),
+    page_number: int = Query(default=1, ge=1),
+    page_size: int = Query(default=10, ge=1, le=50),
+    search: str | None = Query(default=None, min_length=1, max_length=255),
+    category_id: int | None = Query(default=None, gt=0),
     service: PostService = Depends(get_post_service),
 ) -> PostPaginateSchema:
     result = await service.get_list(
@@ -166,7 +165,10 @@ async def get_post(
 )
 async def update_post(
     post_id: UUID,
-    data: UpdatePostSchema,
+    title: str | None = Form(None),
+    content: str | None = Form(None),
+    category_id: int | None = Form(None),
+    image: UploadFile | None = File(None),
     service: PostService = Depends(get_post_service),
     user: User = Depends(get_current_user),
 ) -> PostSchema:
@@ -174,10 +176,10 @@ async def update_post(
         post = await service.update(
             post_id=post_id,
             user_id=user.id,
-            title=data.title,
-            content=data.content,
-            category_id=data.category_id,
-            image_url=data.image_url,
+            title=title,
+            content=content,
+            category_id=category_id,
+            image=image,
         )
     except PostNotFoundException as exc:
         raise HTTPException(
@@ -193,6 +195,16 @@ async def update_post(
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You do not have access to this post",
+        ) from exc
+    except InvalidImageTypeException as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Unsupported image type. Allowed: jpeg, png, webp",
+        ) from exc
+    except ImageTooLargeException as exc:
+        raise HTTPException(
+            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            detail="Image is too large. Max size is 5 MB",
         ) from exc
 
     return PostSchema.model_validate(post)

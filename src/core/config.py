@@ -17,6 +17,13 @@ class Settings(BaseSettings):
     jwt_algorithm: str = "HS256"
     jwt_expire_minutes: int = 60
 
+    s3_endpoint_url: str = "http://rustfs:9000"
+    s3_access_key: str = "rustfsadmin"
+    s3_secret_key: str = "rustfsadmin"
+    s3_bucket_name: str = "post-images"
+    s3_region: str = "us-east-1"
+    s3_public_url: str = "http://localhost:9000"
+
     @property
     def database_url(self) -> str:
         return (

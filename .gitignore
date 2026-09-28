@@ -215,3 +215,4 @@ logs/
 /media/
 .vscode/
 .git/
+tmp/
