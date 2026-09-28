@@ -1,8 +1,10 @@
+from datetime import UTC, datetime
 from uuid import UUID
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.core.database.models.deleted_post_model import DeletedPost
 from src.core.database.models.post_model import Post
 from src.posts.repositories.mixins.post_filter_mixin import (
     PostFilterMixin,
@@ -124,10 +126,22 @@ class PostRepository(PostFilterMixin):
 
         return post
 
-    async def delete(
+    async def move_to_deleted(
         self,
         post: Post,
     ) -> None:
-        await self.session.delete(post)
+        deleted_post = DeletedPost(
+            original_post_id=post.id,
+            title=post.title,
+            content=post.content,
+            image_url=post.image_url,
+            user_id=post.user_id,
+            category_id=post.category_id,
+            created_at=post.created_at,
+            updated_at=post.updated_at,
+            deleted_at=datetime.now(UTC),
+        )
 
-        await self.session.flush()
+        self.session.add(deleted_post)
+
+        await self.session.delete(post)

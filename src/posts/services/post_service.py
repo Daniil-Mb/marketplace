@@ -137,11 +137,14 @@ class PostService:
         post_id: UUID,
         user_id: UUID,
     ) -> None:
-        post = await self.get_by_id(post_id)
+        post = await self.post_repository.get_by_id(post_id)
+
+        if post is None:
+            raise PostNotFoundException
 
         if post.user_id != user_id:
             raise UserHasNoAccessException
 
-        await self.post_repository.delete(post)
+        await self.post_repository.move_to_deleted(post)
 
         await self.session.commit()
