@@ -1,0 +1,79 @@
+from functools import lru_cache
+
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+class Settings(BaseSettings):
+    app_name: str = "marketplace"
+    debug: bool = False
+
+    postgres_host: str = "postgres"
+    postgres_port: int = 5432
+    postgres_db: str = "marketplace"
+    postgres_user: str = "marketplace"
+    postgres_password: str = "password"
+
+    jwt_secret_key: str = "change-me"
+    jwt_algorithm: str = "HS256"
+    jwt_expire_minutes: int = 60
+
+    s3_endpoint_url: str = "http://rustfs:9000"
+    s3_access_key: str = "rustfsadmin"
+    s3_secret_key: str = "rustfsadmin"
+    s3_bucket_name: str = "post-images"
+    s3_region: str = "us-east-1"
+    s3_public_url: str = "http://localhost:9000"
+
+    rabbitmq_host: str = "rabbitmq"
+    rabbitmq_port: int = 5672
+    rabbitmq_user: str = "marketplace"
+    rabbitmq_password: str = "password"
+
+    mail_host: str = "mailhog"
+    mail_port: int = 1025
+    mail_from: str = "noreply@marketplace.local"
+
+    @property
+    def database_url(self) -> str:
+        return (
+            f"postgresql+asyncpg://"
+            f"{self.postgres_user}:{self.postgres_password}"
+            f"@{self.postgres_host}:{self.postgres_port}"
+            f"/{self.postgres_db}"
+        )
+
+    @property
+    def rabbitmq_url(self) -> str:
+        return (
+            f"amqp://"
+            f"{self.rabbitmq_user}:"
+            f"{self.rabbitmq_password}@"
+            f"{self.rabbitmq_host}:"
+            f"{self.rabbitmq_port}//"
+        )
+
+    test_postgres_db: str = "marketplace_test"
+    test_postgres_host: str = "localhost"
+
+    @property
+    def test_database_url(self) -> str:
+        return (
+            "postgresql+asyncpg://"
+            f"{self.postgres_user}:{self.postgres_password}"
+            f"@{self.test_postgres_host}:{self.postgres_port}"
+            f"/{self.test_postgres_db}"
+        )
+
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        extra="ignore",
+    )
+
+
+@lru_cache
+def get_settings() -> Settings:
+    return Settings()
+
+
+settings = get_settings()

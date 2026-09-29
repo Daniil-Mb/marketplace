@@ -1,0 +1,2 @@
+class MultipleValidationException(Exception):
+    pass
