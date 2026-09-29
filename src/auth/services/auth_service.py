@@ -24,9 +24,13 @@ def verify_password(password: str, hashed_password: str) -> bool:
 
 
 class AuthService:
-    def __init__(self, session: AsyncSession) -> None:
+    def __init__(
+        self,
+        session: AsyncSession,
+        user_repository: UserRepository | None = None,
+    ) -> None:
         self.session = session
-        self.user_repository = UserRepository(session)
+        self.user_repository = user_repository or UserRepository(session)
 
     async def register(
         self,

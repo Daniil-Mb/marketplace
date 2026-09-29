@@ -52,6 +52,18 @@ class Settings(BaseSettings):
             f"{self.rabbitmq_port}//"
         )
 
+    test_postgres_db: str = "marketplace_test"
+    test_postgres_host: str = "localhost"
+
+    @property
+    def test_database_url(self) -> str:
+        return (
+            "postgresql+asyncpg://"
+            f"{self.postgres_user}:{self.postgres_password}"
+            f"@{self.test_postgres_host}:{self.postgres_port}"
+            f"/{self.test_postgres_db}"
+        )
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
@@ -62,3 +74,6 @@ class Settings(BaseSettings):
 @lru_cache
 def get_settings() -> Settings:
     return Settings()
+
+
+settings = get_settings()

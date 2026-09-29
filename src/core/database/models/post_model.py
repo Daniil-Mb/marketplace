@@ -55,7 +55,8 @@ class Post(Base):
         TSVECTOR,
         Computed(
             "to_tsvector('russian'::regconfig, "
-            "(COALESCE(title, '')::text || ' ') || COALESCE(content, ''::text)"
+            "(COALESCE(title, '')::text || ' ') || COALESCE(content, ''::text))",
+            persisted=True,
         ),
     )
 
@@ -68,7 +69,7 @@ class Post(Base):
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         server_default=func.now(),
-        onupdate=func.now(),
+        onupdate=func.clock_timestamp(),
         nullable=False,
     )
 
